@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -55,7 +56,7 @@ public class DeviceService {
     }
 
     // 根据工程创建设备
-    @CacheEvict(value = "Device_Cache", allEntries = true)
+    @CachePut(value = "Device_Cache", key = "#deviceEntity.id")
     public DeviceEntity saveDeviceByProject(ProjectEntity projectEntity, DeviceEntity deviceEntity) {
         if (StringUtils.isEmpty(deviceEntity.getName())) {
             throw new RuntimeException(ApplicationMessages.DEVICE_NAME_ARGS_NOT_FOUND);
@@ -75,7 +76,6 @@ public class DeviceService {
     }
 
     // 根据Id复制设备
-    @CacheEvict(value = "Device_Cache", allEntries = true)
     public DeviceEntity copyDeviceById(String deviceId) {
         DeviceEntity deviceArgs = getDeviceById(deviceId);
         DeviceEntity deviceEntity = new DeviceEntity();
@@ -84,18 +84,8 @@ public class DeviceService {
         return deviceRepository.save(deviceEntity);
     }
 
-    public void copyDeviceByProject(ProjectEntity sourceProject, ProjectEntity targetProject) {
-        List<DeviceEntity> deviceEntityList = getDevicesByProject(sourceProject);
-        for (DeviceEntity sourceDevice : deviceEntityList) {
-            DeviceEntity targetDevice = new DeviceEntity();
-            BeanUtils.copyProperties(sourceDevice, targetDevice, "id", "createTime");
-            targetDevice.setProjectEntity(targetProject);
-            deviceRepository.save(targetDevice);
-        }
-    }
-
     // 根据Id删除设备
-    @CacheEvict(value = "Device_Cache", allEntries = true)
+    @CacheEvict(value = "Device_Cache", key = "#deviceId")
     public DeviceEntity deleteDeviceById(String deviceId) {
         DeviceEntity deviceEntity = getDeviceById(deviceId);
         deviceEntity.setDeleted(true);
@@ -112,7 +102,7 @@ public class DeviceService {
     }
 
     // 根据Id撤销删除设备
-    @CacheEvict(value = "Device_Cache", allEntries = true)
+    @CachePut(value = "Device_Cache", key = "#deviceId")
     public DeviceEntity restoreDeviceById(String deviceId) {
         DeviceEntity deviceEntity = getDeviceById(deviceId);
         if (hasDeviceByHostAddressAndDeletedAndProject(deviceEntity.getHostAddress(), false, deviceEntity.getProjectEntity())) {
@@ -123,7 +113,7 @@ public class DeviceService {
     }
 
     // 根据Id清除设备
-    @CacheEvict(value = "Device_Cache", allEntries = true)
+    @CacheEvict(value = "Device_Cache", key = "#deviceId")
     public DeviceEntity cleanDeviceById(String deviceId) {
         DeviceEntity deviceEntity = getDeviceById(deviceId);
         deploymentDesignNodeService.deleteDeploymentDesignNodeByDevice(deviceEntity);
@@ -132,7 +122,7 @@ public class DeviceService {
     }
 
     // 根据Id修改设备
-    @CacheEvict(value = "Device_Cache", allEntries = true)
+    @CachePut(value = "Device_Cache", key = "#deviceId")
     public DeviceEntity updateDeviceById(String deviceId, DeviceEntity deviceArgs) {
         DeviceEntity deviceEntity = getDeviceById(deviceId);
         if (!StringUtils.isEmpty(deviceArgs.getName()) && !deviceEntity.getName().equals(deviceArgs.getName())) {
@@ -206,14 +196,6 @@ public class DeviceService {
         return deviceRepository.countByDeletedAndProjectEntity(deleted, projectEntity);
     }
 
-    // 生成不重复的设备IP地址
-    public String getHostAddress(String hostAddress, ProjectEntity projectEntity) {
-        while (hasDeviceByHostAddressAndDeletedAndProject(hostAddress, false, projectEntity)) {
-            hostAddress = IPUtils.longToIP(IPUtils.ipToLong(hostAddress) + 1);
-        }
-        return hostAddress;
-    }
-
     // 根据id扫描设备磁盘信息
     public List<ProcessScanResultEntity> getProcessById(String deviceId) throws InterruptedException, ExecutionException, TimeoutException, IOException {
         DeviceEntity deviceEntity = getDeviceById(deviceId);
@@ -232,5 +214,13 @@ public class DeviceService {
         orderEntity.setTargetDevice(deviceEntity);
         orderService.sendDiskScanOrderByUDP(orderEntity);
         return scanHandlerService.diskScanHandler(orderEntity).get(10, TimeUnit.SECONDS);
+    }
+
+    // 生成不重复的设备IP地址
+    public String getHostAddress(String hostAddress, ProjectEntity projectEntity) {
+        while (hasDeviceByHostAddressAndDeletedAndProject(hostAddress, false, projectEntity)) {
+            hostAddress = IPUtils.longToIP(IPUtils.ipToLong(hostAddress) + 1);
+        }
+        return hostAddress;
     }
 }

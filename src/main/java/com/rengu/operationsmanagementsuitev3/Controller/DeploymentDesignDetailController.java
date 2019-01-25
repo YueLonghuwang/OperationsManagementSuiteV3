@@ -1,14 +1,11 @@
 package com.rengu.operationsmanagementsuitev3.Controller;
 
 import com.rengu.operationsmanagementsuitev3.Entity.ResultEntity;
+import com.rengu.operationsmanagementsuitev3.Service.ComponentHistoryService;
 import com.rengu.operationsmanagementsuitev3.Service.DeploymentDesignDetailService;
 import com.rengu.operationsmanagementsuitev3.Utils.ResultUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 /**
  * @program: OperationsManagementSuiteV3
@@ -21,10 +18,22 @@ import java.util.concurrent.TimeoutException;
 public class DeploymentDesignDetailController {
 
     private final DeploymentDesignDetailService deploymentDesignDetailService;
+    private final ComponentHistoryService componentHistoryService;
 
     @Autowired
-    public DeploymentDesignDetailController(DeploymentDesignDetailService deploymentDesignDetailService) {
+    public DeploymentDesignDetailController(DeploymentDesignDetailService deploymentDesignDetailService, ComponentHistoryService componentHistoryService) {
         this.deploymentDesignDetailService = deploymentDesignDetailService;
+        this.componentHistoryService = componentHistoryService;
+    }
+
+    @PatchMapping(value = "/{deploymentDesignDetailId}/componenthistory/{componentHistoryId}/bind")
+    public ResultEntity updateComponentHistoryById(@PathVariable(value = "deploymentDesignDetailId") String deploymentDesignDetailId, @PathVariable(value = "componentHistoryId") String componentHistoryId) {
+        return ResultUtils.build(deploymentDesignDetailService.updateComponentHistoryById(deploymentDesignDetailId, componentHistoryService.getComponentHistoryById(componentHistoryId)));
+    }
+
+    @PatchMapping(value = "/{deploymentDesignDetailId}/keep-latest")
+    public ResultEntity updateKeepLatestById(@PathVariable(value = "deploymentDesignDetailId") String deploymentDesignDetailId, @RequestParam(value = "keepLatest") boolean keepLatest) {
+        return ResultUtils.build(deploymentDesignDetailService.updateKeepLatestById(deploymentDesignDetailId, keepLatest));
     }
 
     @DeleteMapping(value = "/{deploymentDesignDetailId}")
@@ -32,9 +41,8 @@ public class DeploymentDesignDetailController {
         return ResultUtils.build(deploymentDesignDetailService.deleteDeploymentDesignDetailById(deploymentDesignDetailId));
     }
 
-    // 根据部署设计Id及设备Id进行扫描
-    @GetMapping(value = "/{deploymentDesignDetailId}/scan")
-    public ResultEntity scanDeploymentDesignDetailsByDeploymentDesignAndDevice(@PathVariable(value = "deploymentDesignDetailId") String deploymentDesignDetailId, @RequestParam(value = "extensions", required = false, defaultValue = "") String... extensions) throws InterruptedException, ExecutionException, IOException, TimeoutException {
-        return ResultUtils.build(deploymentDesignDetailService.scanDeploymentDesignDetailsById(deploymentDesignDetailId, extensions, ""));
+    @PutMapping(value = "/{deploymentDesignDetailId}/deploy")
+    public void deployDeploymentDesignDetailById(@PathVariable(value = "deploymentDesignDetailId") String deploymentDesignDetailId) {
+        deploymentDesignDetailService.deployDeploymentDesignDetailById(deploymentDesignDetailId);
     }
 }

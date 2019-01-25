@@ -22,9 +22,7 @@ public interface DeploymentDesignRepository extends JpaRepository<DeploymentDesi
 
     Page<DeploymentDesignEntity> findAllByDeletedAndProjectEntity(Pageable pageable, boolean deleted, ProjectEntity projectEntity);
 
-    List<DeploymentDesignEntity> findAllByDeletedAndProjectEntity(boolean deleted, ProjectEntity projectEntity);
+    long countAllByDeletedAndProjectEntity(boolean deleted, ProjectEntity projectEntity);
 
     List<DeploymentDesignEntity> findAllByProjectEntity(ProjectEntity projectEntity);
-
-    long countAllByDeletedAndProjectEntity(boolean deleted, ProjectEntity projectEntity);
 }

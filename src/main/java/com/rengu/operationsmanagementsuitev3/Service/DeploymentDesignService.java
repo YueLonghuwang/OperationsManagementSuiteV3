@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -30,6 +30,7 @@ import java.util.List;
 @Transactional
 public class DeploymentDesignService {
 
+
     private final DeploymentDesignRepository deploymentDesignRepository;
     private final DeploymentDesignNodeService deploymentDesignNodeService;
 
@@ -40,7 +41,7 @@ public class DeploymentDesignService {
     }
 
     // 根据工程保存部署设计
-    @CacheEvict(value = "DeploymentDesign_Cache", allEntries = true)
+    @CachePut(value = "DeploymentDesign_Cache", key = "#deploymentDesignEntity.id")
     public DeploymentDesignEntity saveDeploymentDesignByProject(ProjectEntity projectEntity, DeploymentDesignEntity deploymentDesignEntity) {
         if (StringUtils.isEmpty(deploymentDesignEntity.getName())) {
             throw new RuntimeException(ApplicationMessages.DEPLOYMENT_DESIGN_NAME_ARGS_NOT_FOUND);
@@ -53,28 +54,28 @@ public class DeploymentDesignService {
     }
 
     // 根据Id复制部署设计
-    @CacheEvict(value = "DeploymentDesign_Cache", allEntries = true)
     public DeploymentDesignEntity copyDeploymentDesignById(String deploymentDesignId) {
         DeploymentDesignEntity deploymentDesignArgs = getDeploymentDesignById(deploymentDesignId);
         DeploymentDesignEntity deploymentDesignEntity = new DeploymentDesignEntity();
-        BeanUtils.copyProperties(deploymentDesignArgs, deploymentDesignEntity, "id", "createTime", "baseline", "name");
+        BeanUtils.copyProperties(deploymentDesignArgs, deploymentDesignEntity, "id", "createTime", "name", "source");
         deploymentDesignEntity.setName(getDeploymentDesignName(deploymentDesignArgs));
-        deploymentDesignRepository.save(deploymentDesignEntity);
-        deploymentDesignNodeService.copyDeploymentDesignNodeByDeploymentDesign(deploymentDesignArgs, deploymentDesignEntity);
-        return deploymentDesignEntity;
+        return deploymentDesignRepository.save(deploymentDesignEntity);
     }
 
-    // 根据Id创建基线
-    @CacheEvict(value = "DeploymentDesign_Cache", allEntries = true)
-    public DeploymentDesignEntity baselineDeploymentDesignById(String deploymentDesignId) {
-        DeploymentDesignEntity deploymentDesignEntity = copyDeploymentDesignById(deploymentDesignId);
+    // 根据Id复制部署设计
+    public DeploymentDesignEntity baselineDeploymentDesignById(String deploymentDesignId, String createMessage) {
+        DeploymentDesignEntity deploymentDesignArgs = getDeploymentDesignById(deploymentDesignId);
+        DeploymentDesignEntity deploymentDesignEntity = new DeploymentDesignEntity();
+        BeanUtils.copyProperties(deploymentDesignArgs, deploymentDesignEntity, "id", "createTime", "name", "source");
+        deploymentDesignEntity.setName(getDeploymentDesignName(deploymentDesignArgs));
         deploymentDesignEntity.setBaseline(true);
-        deploymentDesignRepository.save(deploymentDesignEntity);
-        return deploymentDesignEntity;
+        deploymentDesignEntity.setCreateMessage(createMessage);
+        deploymentDesignEntity.setSource(deploymentDesignArgs);
+        return deploymentDesignRepository.save(deploymentDesignEntity);
     }
 
-    // 根据id删除部署设计
-    @CacheEvict(value = "DeploymentDesign_Cache", allEntries = true)
+    // 根据Id删除部署设计
+    @CacheEvict(value = "DeploymentDesign_Cache", key = "#deploymentDesignId")
     public DeploymentDesignEntity deleteDeploymentDesignById(String deploymentDesignId) {
         DeploymentDesignEntity deploymentDesignEntity = getDeploymentDesignById(deploymentDesignId);
         deploymentDesignEntity.setDeleted(true);
@@ -82,33 +83,39 @@ public class DeploymentDesignService {
     }
 
     // 根据id撤销删除部署设计
-    @CacheEvict(value = "DeploymentDesign_Cache", allEntries = true)
+    @CachePut(value = "DeploymentDesign_Cache", key = "#deploymentDesignId")
     public DeploymentDesignEntity restoreDeploymentDesignById(String deploymentDesignId) {
         DeploymentDesignEntity deploymentDesignEntity = getDeploymentDesignById(deploymentDesignId);
-        deploymentDesignEntity.setName(getDeploymentDesignName(deploymentDesignEntity));
         deploymentDesignEntity.setDeleted(false);
+        deploymentDesignEntity.setName(getDeploymentDesignName(deploymentDesignEntity));
         return deploymentDesignRepository.save(deploymentDesignEntity);
     }
 
     // 根据id清除部署设计
-    @CacheEvict(value = "DeploymentDesign_Cache", allEntries = true)
+    @CacheEvict(value = "DeploymentDesign_Cache", key = "#deploymentDesignId")
     public DeploymentDesignEntity cleanDeploymentDesignById(String deploymentDesignId) {
         DeploymentDesignEntity deploymentDesignEntity = getDeploymentDesignById(deploymentDesignId);
-        deploymentDesignNodeService.deleteDeploymentDesignNodeByDeploymentDesign(deploymentDesignEntity);
+        return cleanDeploymentDesignById(deploymentDesignEntity);
+    }
+
+    @CacheEvict(value = "DeploymentDesign_Cache", key = "#deploymentDesignEntity.id")
+    public DeploymentDesignEntity cleanDeploymentDesignById(DeploymentDesignEntity deploymentDesignEntity) {
+        for (DeploymentDesignNodeEntity deploymentDesignNodeEntity : deploymentDesignNodeService.getDeploymentDesignNodesByDeploymentDesign(deploymentDesignEntity)) {
+            deploymentDesignNodeService.deleteDeploymentDesignNodeById(deploymentDesignNodeEntity);
+        }
         deploymentDesignRepository.delete(deploymentDesignEntity);
         return deploymentDesignEntity;
     }
 
-    public List<DeploymentDesignEntity> deleteDeploymentDesignByProject(ProjectEntity projectEntity) {
-        List<DeploymentDesignEntity> deploymentDesignEntityList = getDeploymentDesignsByProject(projectEntity);
-        for (DeploymentDesignEntity deploymentDesignEntity : deploymentDesignEntityList) {
-            cleanDeploymentDesignById(deploymentDesignEntity.getId());
+    @CacheEvict(value = "DeploymentDesign_Cache", allEntries = true)
+    public void deleteDeploymentDesignByProject(ProjectEntity projectEntity) {
+        for (DeploymentDesignEntity deploymentDesignEntity : getDeploymentDesignsByProject(projectEntity)) {
+            cleanDeploymentDesignById(deploymentDesignEntity);
         }
-        return deploymentDesignEntityList;
     }
 
     // 根据id修改部署设计
-    @CacheEvict(value = "DeploymentDesign_Cache", allEntries = true)
+    @CachePut(value = "DeploymentDesign_Cache", key = "#deploymentDesignId")
     public DeploymentDesignEntity updateDeploymentDesignById(String deploymentDesignId, DeploymentDesignEntity deploymentDesignArgs) {
         DeploymentDesignEntity deploymentDesignEntity = getDeploymentDesignById(deploymentDesignId);
         if (!StringUtils.isEmpty(deploymentDesignArgs.getName()) && !deploymentDesignEntity.getName().equals(deploymentDesignArgs.getName())) {
@@ -123,7 +130,7 @@ public class DeploymentDesignService {
         return deploymentDesignRepository.save(deploymentDesignEntity);
     }
 
-    // 根据名称、是否删除及工程判断是否存在工程
+    // 根据工程、名称、是否被删除判断部署设计是否存在
     public boolean hasDeploymentDesignByNameAndDeletedAndProject(String name, boolean deleted, ProjectEntity projectEntity) {
         if (StringUtils.isEmpty(name)) {
             return false;
@@ -139,19 +146,6 @@ public class DeploymentDesignService {
         return deploymentDesignRepository.existsById(deploymentDesignId);
     }
 
-    // 下发整个部署设计
-    public void deployDeploymentDesignById(String deploymentDesignId) throws IOException {
-        DeploymentDesignEntity deploymentDesignEntity = getDeploymentDesignById(deploymentDesignId);
-        for (DeploymentDesignNodeEntity deploymentDesignNodeEntity : deploymentDesignNodeService.getDeploymentDesignNodesByDeploymentDesign(deploymentDesignEntity)) {
-            deploymentDesignNodeService.deployDeploymentDesignNodeById(deploymentDesignNodeEntity.getId());
-        }
-    }
-
-    // 查询全部部署组件
-    public Page<DeploymentDesignEntity> getDeploymentDesigns(Pageable pageable) {
-        return deploymentDesignRepository.findAll(pageable);
-    }
-
     // 根据Id查询部署设计
     @Cacheable(value = "DeploymentDesign_Cache", key = "#deploymentDesignId")
     public DeploymentDesignEntity getDeploymentDesignById(String deploymentDesignId) {
@@ -161,22 +155,17 @@ public class DeploymentDesignService {
         return deploymentDesignRepository.findById(deploymentDesignId).get();
     }
 
-    // 根据是否删除及工程查询部署设计
+    // 根据工程和是否删除查询部署设计-分页
     public Page<DeploymentDesignEntity> getDeploymentDesignsByDeletedAndProject(Pageable pageable, boolean deleted, ProjectEntity projectEntity) {
         return deploymentDesignRepository.findAllByDeletedAndProjectEntity(pageable, deleted, projectEntity);
     }
 
-    // 根据是否删除及工程查询部署设计
-    public List<DeploymentDesignEntity> getDeploymentDesignsByDeletedAndProject(boolean deleted, ProjectEntity projectEntity) {
-        return deploymentDesignRepository.findAllByDeletedAndProjectEntity(deleted, projectEntity);
-    }
-
-    // 根据是否删除及工程查询部署设计
+    // 根据工程查询部署设计
     public List<DeploymentDesignEntity> getDeploymentDesignsByProject(ProjectEntity projectEntity) {
         return deploymentDesignRepository.findAllByProjectEntity(projectEntity);
     }
 
-    // 根据是否删除及工程查询部署设计数量
+    // 查询未删除的部署设计数量
     public long countDeploymentDesignsByDeletedAndProject(boolean deleted, ProjectEntity projectEntity) {
         return deploymentDesignRepository.countAllByDeletedAndProjectEntity(deleted, projectEntity);
     }

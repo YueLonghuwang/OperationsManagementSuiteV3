@@ -24,12 +24,13 @@ public class DeploymentDesignDetailEntity implements Serializable {
     private String id = UUID.randomUUID().toString();
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime = new Date();
-    @ManyToOne
-    private DeploymentDesignNodeEntity deploymentDesignNodeEntity;
+    private boolean keepLatest;
     @ManyToOne
     private ComponentHistoryEntity componentHistoryEntity;
     @ManyToOne
     private ComponentEntity componentEntity;
+    @ManyToOne
+    private DeploymentDesignNodeEntity deploymentDesignNodeEntity;
     @ManyToOne
     private DeploymentDesignEntity deploymentDesignEntity;
 }

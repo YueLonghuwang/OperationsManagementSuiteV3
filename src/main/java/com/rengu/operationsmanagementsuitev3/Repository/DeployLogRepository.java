@@ -7,8 +7,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 /**
  * @program: operations-management-suite-v3
  * @author: hanch
@@ -20,5 +18,5 @@ public interface DeployLogRepository extends JpaRepository<DeployLogEntity, Stri
 
     Page<DeployLogEntity> findAllByProjectEntity(Pageable pageable, ProjectEntity projectEntity);
 
-    List<DeployLogEntity> findAllByProjectEntity(ProjectEntity projectEntity);
+    void deleteAllByProjectEntity(ProjectEntity projectEntity);
 }

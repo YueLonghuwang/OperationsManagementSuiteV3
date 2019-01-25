@@ -27,7 +27,6 @@ public class UserActionLogService {
     public static final int DEVICE_OBJECT = 3;
     public static final int COMPONENT_OBJECT = 4;
     public static final int DEPLOYMENT_DESIGN_OBJECT = 5;
-    public static final int DEPLOYMENT_DESIGN_NODE_OBJECT = 6;
 
     // 操作类别
     public static final int ERROR_TYPE = 0;
@@ -40,8 +39,12 @@ public class UserActionLogService {
     public static final int SCAN_TYPE = 7;
     public static final int EXPORT_TYPE = 7;
 
+    private final UserActionLogRepository userActionLogRepository;
+
     @Autowired
-    private UserActionLogRepository userActionLogRepository;
+    public UserActionLogService(UserActionLogRepository userActionLogRepository) {
+        this.userActionLogRepository = userActionLogRepository;
+    }
 
     // 保存用户操作日志
     public UserActionLogEntity saveUserActionLog(UserActionLogEntity userActionLogEntity) {

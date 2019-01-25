@@ -5,10 +5,8 @@ import com.rengu.operationsmanagementsuitev3.Repository.RoleRepository;
 import com.rengu.operationsmanagementsuitev3.Utils.ApplicationMessages;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -32,7 +30,7 @@ public class RoleService {
     }
 
     // 保存角色
-    @CacheEvict(value = "Role_Cache", allEntries = true)
+    @CachePut(value = "Role_Cache", key = "#roleEntity.name")
     public RoleEntity saveRole(RoleEntity roleEntity) {
         if (roleEntity == null) {
             throw new RuntimeException(ApplicationMessages.ROLE_ARGS_NOT_FOUND);
@@ -61,10 +59,5 @@ public class RoleService {
             throw new RuntimeException(ApplicationMessages.ROLE_NAME_NOT_FOUND);
         }
         return roleRepository.findByName(name).get();
-    }
-
-    // 查询所有角色
-    public Page<RoleEntity> getRoles(Pageable pageable) {
-        return roleRepository.findAll(pageable);
     }
 }
