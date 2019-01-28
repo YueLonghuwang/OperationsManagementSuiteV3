@@ -81,18 +81,21 @@ public class DeployMetaService {
     }
 
     public void deployMeta(DeploymentDesignEntity deploymentDesignEntity, DeviceEntity deviceEntity, List<DeployMetaEntity> deployMetaEntityList) {
-        if (DEPLOYING_DEVICE.containsKey(deviceEntity.getHostAddress())) {
-            throw new RuntimeException(ApplicationMessages.DEVICE_IS_DEPOLOYING + deviceEntity.getHostAddress());
-        }
-        DEPLOYING_DEVICE.put(deviceEntity.getHostAddress(), deviceEntity);
-        // 初始化日志记录
-        DeployLogEntity deployLogEntity = new DeployLogEntity();
-        deployLogEntity.setTotalFileSize(getTotalFileSize(deployMetaEntityList));
-        deployLogEntity.setProjectEntity(deploymentDesignEntity.getProjectEntity());
         // 初始化发送进度信息
         long totalSendSize = 0;
         double sendProgress = 0.0;
         double sendSpeed = 0.0;
+        // 初始化日志记录
+        DeployLogEntity deployLogEntity = new DeployLogEntity();
+        deployLogEntity.setTotalFileSize(getTotalFileSize(deployMetaEntityList));
+        deployLogEntity.setProjectEntity(deploymentDesignEntity.getProjectEntity());
+        // 设备是否在部署的检查
+        if (DEPLOYING_DEVICE.containsKey(deviceEntity.getHostAddress())) {
+            simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, ApplicationMessages.DEVICE_IS_DEPOLOYING + deviceEntity.getHostAddress()));
+            deployLogService.saveDeployLog(deployLogEntity, false, ApplicationMessages.DEVICE_IS_DEPOLOYING + deviceEntity.getHostAddress(), totalSendSize);
+            return;
+        }
+        DEPLOYING_DEVICE.put(deviceEntity.getHostAddress(), deviceEntity);
         try {
             // 初始化Socket、输入输出流
             @Cleanup Socket socket = new Socket(deviceEntity.getHostAddress(), ApplicationConfig.TCP_DEPLOY_PORT);
@@ -103,7 +106,9 @@ public class DeployMetaService {
             for (DeployMetaEntity deployMetaEntity : deployMetaEntityList) {
                 // 检测设备是否在线
                 if (!DeviceService.ONLINE_HOST_ADRESS.containsKey(deployMetaEntity.getDeviceEntity().getHostAddress())) {
-                    throw new RuntimeException(ApplicationMessages.DEVICE_IS_OFFLINE + deployMetaEntity.getDeviceEntity().getHostAddress());
+                    simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, ApplicationMessages.DEVICE_IS_OFFLINE + deployMetaEntity.getDeviceEntity().getHostAddress()));
+                    deployLogService.saveDeployLog(deployLogEntity, false, ApplicationMessages.DEVICE_IS_OFFLINE + deployMetaEntity.getDeviceEntity().getHostAddress(), totalSendSize);
+                    return;
                 }
                 // 1、发送文件开始标志
                 outputStream.write("fileRecvStart".getBytes());
@@ -147,7 +152,7 @@ public class DeployMetaService {
                         double sendSize = readSize / 1024.0;
                         sendSpeed = sendSize / sendTime;
                         sendProgress = ((double) totalSendSize / deployLogEntity.getTotalFileSize()) * 100;
-                        log.info("开始时间：" + fileSendStart + "，发送大小：" + sendSize + "，发送时间：" + sendTime + ",发送速度：" + sendSpeed + ",发送进度：" + sendProgress);
+//                        log.info("开始时间：" + fileSendStart + "，发送大小：" + sendSize + "，发送时间：" + sendTime + ",发送速度：" + sendSpeed + ",发送进度：" + sendProgress);
                         if (file.length() > FileUtils.ONE_MB * 10 && fileSendSize % (ApplicationConfig.FILE_READ_BUFFER_SIZE * 10) == 0) {
                             simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署中"));
                         }
@@ -181,12 +186,13 @@ public class DeployMetaService {
             // 6. 发送部署结束标志
             outputStream.write("DeployEnd".getBytes());
             outputStream.flush();
+            simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), 0, 100, DEPLOY_FINISHED, "部署结束"));
             deployLogService.saveDeployLog(deployLogEntity, true, "部署成功", totalSendSize);
         } catch (IOException e) {
             e.printStackTrace();
+            simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, e.getMessage()));
             deployLogService.saveDeployLog(deployLogEntity, false, e.getMessage(), totalSendSize);
         } finally {
-            simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), 0, 100, DEPLOY_FINISHED, "部署结束"));
             DEPLOYING_DEVICE.remove(deviceEntity.getHostAddress());
         }
     }
