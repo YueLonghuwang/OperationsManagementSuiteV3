@@ -34,7 +34,8 @@ public class DeployLogService {
         deployLogEntity.setFinishTime(new Date());
         deployLogEntity.setComplete(complete);
         deployLogEntity.setMessage(message);
-        deployLogEntity.setSpeed((sendSize / 1024.0) / (deployLogEntity.getFinishTime().getTime() - deployLogEntity.getStartTime().getTime()));
+        deployLogEntity.setSpeed((sendSize / 1024.0) / ((deployLogEntity.getFinishTime().getTime() - deployLogEntity.getStartTime().getTime()) / 1000));
+        deployLogEntity.setProgress(((double) sendSize / deployLogEntity.getTotalFileSize()) * 100);
         return deployLogRepository.save(deployLogEntity);
     }
 

@@ -55,24 +55,27 @@ public class DeployMetaService {
         List<DeployMetaEntity> deployMetaEntityList = new ArrayList<>();
         for (DeploymentDesignDetailEntity deploymentDesignDetailEntity : deploymentDesignDetailEntities) {
             DeviceEntity deviceEntity = deploymentDesignDetailEntity.getDeploymentDesignNodeEntity().getDeviceEntity();
-            DeployMetaEntity deployMetaEntity = new DeployMetaEntity();
-            deployMetaEntity.setDeviceEntity(deviceEntity);
             if (deploymentDesignDetailEntity.isKeepLatest()) {
                 for (ComponentFileEntity componentFileEntity : componentFileService.getComponentFilesByComponent(deploymentDesignDetailEntity.getComponentEntity())) {
                     if (!componentFileEntity.isFolder()) {
+                        DeployMetaEntity deployMetaEntity = new DeployMetaEntity();
+                        deployMetaEntity.setDeviceEntity(deviceEntity);
                         deployMetaEntity.setTargetPath(FormatUtils.formatPath(deviceEntity.getDeployPath() + deploymentDesignDetailEntity.getComponentEntity().getRelativePath() + FormatUtils.getComponentFileRelativePath(componentFileEntity, "")));
                         deployMetaEntity.setFileEntity(componentFileEntity.getFileEntity());
+                        deployMetaEntityList.add(deployMetaEntity);
                     }
                 }
             } else {
                 for (ComponentFileHistoryEntity componentFileHistoryEntity : componentFileHistoryService.getComponentFileHistorysByComponentHistory(deploymentDesignDetailEntity.getComponentHistoryEntity())) {
                     if (!componentFileHistoryEntity.isFolder()) {
+                        DeployMetaEntity deployMetaEntity = new DeployMetaEntity();
+                        deployMetaEntity.setDeviceEntity(deviceEntity);
                         deployMetaEntity.setTargetPath(FormatUtils.formatPath(deviceEntity.getDeployPath() + deploymentDesignDetailEntity.getComponentHistoryEntity().getRelativePath() + FormatUtils.getComponentFileHistoryRelativePath(componentFileHistoryEntity, "")));
                         deployMetaEntity.setFileEntity(componentFileHistoryEntity.getFileEntity());
+                        deployMetaEntityList.add(deployMetaEntity);
                     }
                 }
             }
-            deployMetaEntityList.add(deployMetaEntity);
         }
         return deployMetaEntityList;
     }
@@ -118,7 +121,7 @@ public class DeployMetaService {
                             String deployMessage = deviceEntity.getHostAddress() + ":" + deployMetaEntity.getTargetPath() + ",部署失败，接收路径回复超时。当前进度：" + sendProgress + "%";
                             simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署失败"));
                             deployLogService.saveDeployLog(deployLogEntity, false, deployMessage, totalSendSize);
-                            throw new RuntimeException(deployMessage);
+                            return;
                         }
                     }
                 }
@@ -139,19 +142,20 @@ public class DeployMetaService {
                         outputStream.write(sendBuffer);
                         totalSendSize = totalSendSize + readSize;
                         // 发送时间单位:秒
-                        double sendTime = (System.currentTimeMillis() - fileSendStart) / 1000.0;
+                        double sendTime = ((System.currentTimeMillis() - fileSendStart) + 1) / 1000.0;
                         // 发送大小单位:kb
                         double sendSize = readSize / 1024.0;
                         sendSpeed = sendSize / sendTime;
-                        sendProgress = ((double) totalSendSize / totalSendSize) * 100;
-                        if (file.length() > FileUtils.ONE_MB * 10) {
+                        sendProgress = ((double) totalSendSize / deployLogEntity.getTotalFileSize()) * 100;
+                        log.info("开始时间：" + fileSendStart + "，发送大小：" + sendSize + "，发送时间：" + sendTime + ",发送速度：" + sendSpeed + ",发送进度：" + sendProgress);
+                        if (file.length() > FileUtils.ONE_MB * 10 && fileSendSize % (ApplicationConfig.FILE_READ_BUFFER_SIZE * 10) == 0) {
                             simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署中"));
                         }
                     } else {
                         String deployMessage = deviceEntity.getHostAddress() + ":" + deployMetaEntity.getTargetPath() + ",部署失败，文件读取异常。当前进度：" + sendProgress + "%";
                         simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署失败"));
                         deployLogService.saveDeployLog(deployLogEntity, false, deployMessage, totalSendSize);
-                        throw new RuntimeException(deployMessage);
+                        return;
                     }
                 }
                 // 5、结束标志确认
@@ -167,11 +171,11 @@ public class DeployMetaService {
                             String deployMessage = deviceEntity.getHostAddress() + ":" + deployMetaEntity.getTargetPath() + ",部署失败，接收文件结束标志回复超时。当前进度：" + sendProgress + "%";
                             simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署失败"));
                             deployLogService.saveDeployLog(deployLogEntity, false, deployMessage, totalSendSize);
-                            throw new RuntimeException(deployMessage);
+                            return;
                         }
                     }
                 }
-                simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendProgress, sendSpeed, DEPLOYING_SUCCEED, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署成功"));
+                simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_SUCCEED, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署成功"));
                 log.info(deviceEntity.getHostAddress() + ":" + deployMetaEntity.getTargetPath() + ",部署成功，当前进度：" + sendProgress + "%,当前速度：" + sendSpeed + "kb/s");
             }
             // 6. 发送部署结束标志
@@ -180,6 +184,7 @@ public class DeployMetaService {
             deployLogService.saveDeployLog(deployLogEntity, true, "部署成功", totalSendSize);
         } catch (IOException e) {
             e.printStackTrace();
+            deployLogService.saveDeployLog(deployLogEntity, false, e.getMessage(), totalSendSize);
         } finally {
             simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), 0, 100, DEPLOY_FINISHED, "部署结束"));
             DEPLOYING_DEVICE.remove(deviceEntity.getHostAddress());

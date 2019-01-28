@@ -27,6 +27,7 @@ public class DeployLogEntity implements Serializable {
     private Date finishTime;
     private long totalFileSize;
     private double speed;
+    private double progress;
     private boolean complete = true;
     private String message;
     @ManyToOne
