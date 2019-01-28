@@ -20,8 +20,8 @@ public class OrderEntity implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime = new Date();
     private String tag;
-    private String deploymentDesignNodeId;
-    private String deploymentDesignDetailId;
+    private DeploymentDesignNodeEntity deploymentDesignNodeEntity;
+    private DeploymentDesignDetailEntity deploymentDesignDetailEntity;
     private String extension;
     private String targetPath;
     private DeviceEntity targetDevice;

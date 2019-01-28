@@ -2,6 +2,7 @@ package com.rengu.operationsmanagementsuitev3.Service;
 
 import com.rengu.operationsmanagementsuitev3.Entity.*;
 import com.rengu.operationsmanagementsuitev3.Repository.DeploymentDesignDetailRepository;
+import com.rengu.operationsmanagementsuitev3.Utils.ApplicationConfig;
 import com.rengu.operationsmanagementsuitev3.Utils.ApplicationMessages;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -11,8 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * @program: OperationsManagementSuiteV3
@@ -27,11 +32,17 @@ public class DeploymentDesignDetailService {
 
     private final DeploymentDesignDetailRepository deploymentDesignDetailRepository;
     private final DeployMetaService deployMetaService;
+    private final OrderService orderService;
+    private final ScanHandlerService scanHandlerService;
+    private final DeploymentDesignScanResultService deploymentDesignScanResultService;
 
     @Autowired
-    public DeploymentDesignDetailService(DeploymentDesignDetailRepository deploymentDesignDetailRepository, DeployMetaService deployMetaService) {
+    public DeploymentDesignDetailService(DeploymentDesignDetailRepository deploymentDesignDetailRepository, DeployMetaService deployMetaService, OrderService orderService, ScanHandlerService scanHandlerService, DeploymentDesignScanResultService deploymentDesignScanResultService) {
         this.deploymentDesignDetailRepository = deploymentDesignDetailRepository;
         this.deployMetaService = deployMetaService;
+        this.orderService = orderService;
+        this.scanHandlerService = scanHandlerService;
+        this.deploymentDesignScanResultService = deploymentDesignScanResultService;
     }
 
     // 部署设计节点绑定组件历史
@@ -68,7 +79,7 @@ public class DeploymentDesignDetailService {
     }
 
     public DeploymentDesignDetailEntity deleteDeploymentDesignDetailById(DeploymentDesignDetailEntity deploymentDesignDetailEntity) {
-        // todo 添加删除部署设计扫描历史逻辑
+        deploymentDesignScanResultService.deleteDeploymentDesignScanResultByDeploymentDesignDetail(deploymentDesignDetailEntity);
         deploymentDesignDetailRepository.delete(deploymentDesignDetailEntity);
         return deploymentDesignDetailEntity;
     }
@@ -157,5 +168,53 @@ public class DeploymentDesignDetailService {
         }
         List<DeployMetaEntity> deployMetaEntityList = deployMetaService.createDeployMeta(deploymentDesignDetailEntityList.toArray(new DeploymentDesignDetailEntity[deploymentDesignDetailEntityList.size()]));
         deployMetaService.deployMeta(deploymentDesignNodeEntity.getDeploymentDesignEntity(), deviceEntity, deployMetaEntityList);
+    }
+
+    public List<DeploymentDesignScanResultEntity> scanDeploymentDesignDetailsByDeploymentDesignNode(DeploymentDesignNodeEntity deploymentDesignNodeEntity, String[] extensions) throws InterruptedException, ExecutionException, IOException {
+        List<DeploymentDesignDetailEntity> deploymentDesignDetailEntityList = getDeploymentDesignDetailsByDeploymentDesignNode(deploymentDesignNodeEntity);
+        List<DeploymentDesignScanResultEntity> deploymentDesignScanResultEntityList = new ArrayList<>();
+        for (DeploymentDesignDetailEntity deploymentDesignDetailEntity : deploymentDesignDetailEntityList) {
+            deploymentDesignScanResultEntityList.add(scanDeploymentDesignDetail(deploymentDesignDetailEntity, extensions));
+        }
+        return deploymentDesignScanResultEntityList;
+    }
+
+    // 扫面设备下的某个组件
+    public DeploymentDesignScanResultEntity scanDeploymentDesignDetail(DeploymentDesignDetailEntity deploymentDesignDetailEntity, String[] extensions) throws IOException, ExecutionException, InterruptedException {
+        DeploymentDesignNodeEntity deploymentDesignNodeEntity = deploymentDesignDetailEntity.getDeploymentDesignNodeEntity();
+        if (deploymentDesignNodeEntity.getDeviceEntity() == null) {
+            throw new RuntimeException(ApplicationMessages.DEPLOYMENT_DESIGN_NODE_DEVICE_ARGS_NOT_FOUND);
+        }
+        DeviceEntity deviceEntity = deploymentDesignNodeEntity.getDeviceEntity();
+        if (!DeviceService.ONLINE_HOST_ADRESS.containsKey(deviceEntity.getHostAddress())) {
+            throw new RuntimeException(ApplicationMessages.DEVICE_NOT_ONLINE + deviceEntity.getHostAddress());
+        }
+        OrderEntity orderEntity = new OrderEntity();
+        if (extensions == null || extensions.length == 0) {
+            orderEntity.setTag(OrderService.DEPLOY_DESIGN_SCAN);
+        } else {
+            orderEntity.setTag(OrderService.DEPLOY_DESIGN_SCAN_WITH_EXTENSIONS);
+            orderEntity.setExtension(Arrays.toString(extensions).replace("[", "").replace("]", "").replaceAll("\\s*", ""));
+        }
+        orderEntity.setDeploymentDesignNodeEntity(deploymentDesignNodeEntity);
+        orderEntity.setDeploymentDesignDetailEntity(deploymentDesignDetailEntity);
+        orderEntity.setTargetPath(deviceEntity.getDeployPath() + deploymentDesignDetailEntity.getComponentHistoryEntity().getRelativePath());
+        orderService.sendDeployDesignScanOrderByUDP(orderEntity);
+        Future<DeploymentDesignScanResultEntity> scanResult = scanHandlerService.deploymentDesignDetailScanHandler(orderEntity);
+        long scanStartTime = System.currentTimeMillis();
+        while (true) {
+            if (System.currentTimeMillis() - scanStartTime >= ApplicationConfig.SCAN_TIME_OUT * 6) {
+                if (!ScanHandlerService.DEPLOY_DESIGN_SCAN_RESULT.containsKey(orderEntity.getId())) {
+                    log.info("扫描Id：" + orderEntity.getId() + ",扫描超时，未接收到客户端返回结果，程序退出。");
+                    throw new RuntimeException(ApplicationMessages.SCAN_DEPLOY_DESIGN_TIME_OUT);
+                }
+            }
+            if (scanResult.isDone()) {
+                DeploymentDesignScanResultEntity deploymentDesignScanResultEntity = scanResult.get();
+                ScanHandlerService.DEPLOY_DESIGN_SCAN_RESULT.remove(orderEntity.getId());
+                log.info("扫描Id：" + orderEntity.getId() + ",处理时间：" + ((System.currentTimeMillis() - scanStartTime) / 1000.0) + "扫描结束。");
+                return deploymentDesignScanResultService.saveDeploymentDesignScanResult(deploymentDesignScanResultEntity);
+            }
+        }
     }
 }

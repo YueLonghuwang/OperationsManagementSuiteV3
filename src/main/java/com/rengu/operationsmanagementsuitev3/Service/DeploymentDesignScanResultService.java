@@ -7,6 +7,7 @@ import com.rengu.operationsmanagementsuitev3.Utils.ApplicationMessages;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class DeploymentDesignScanResultService {
         this.deploymentDesignScanResultRepository = deploymentDesignScanResultRepository;
     }
 
+    @CachePut(value = "Deployment_Design_Scan_Result_Cache", key = "#deploymentDesignScanResultEntity.orderId")
     public DeploymentDesignScanResultEntity saveDeploymentDesignScanResult(DeploymentDesignScanResultEntity deploymentDesignScanResultEntity) {
         return deploymentDesignScanResultRepository.save(deploymentDesignScanResultEntity);
     }
@@ -66,7 +68,6 @@ public class DeploymentDesignScanResultService {
         return deploymentDesignScanResultRepository.existsByOrderId(orderId);
     }
 
-    @Cacheable(value = "Deployment_Design_Scan_Result_Cache", key = "#deploymentDesignScanResultId")
     public DeploymentDesignScanResultEntity getDeploymentDesignScanResultsById(String deploymentDesignScanResultId) {
         if (!hasDeploymentDesignScanResultById(deploymentDesignScanResultId)) {
             throw new RuntimeException(ApplicationMessages.DEPLOYMENT_DESIGN_SCAN_RESULT_ID_NOT_FOUND + deploymentDesignScanResultId);
@@ -82,7 +83,6 @@ public class DeploymentDesignScanResultService {
         return deploymentDesignScanResultRepository.findAllByOrderId(orderId);
     }
 
-    @Cacheable(value = "Deployment_Design_Scan_Result_Cache", key = "#deploymentDesignDetailEntity.getId()")
     public List<DeploymentDesignScanResultEntity> getDeploymentDesignScanResultsByDeploymentDesignDetail(DeploymentDesignDetailEntity deploymentDesignDetailEntity) {
         return deploymentDesignScanResultRepository.findAllByDeploymentDesignDetailEntity(deploymentDesignDetailEntity);
     }

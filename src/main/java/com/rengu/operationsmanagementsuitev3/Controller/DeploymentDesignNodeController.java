@@ -9,7 +9,9 @@ import com.rengu.operationsmanagementsuitev3.Utils.ResultUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @program: OperationsManagementSuiteV3
@@ -84,5 +86,11 @@ public class DeploymentDesignNodeController {
     @PutMapping(value = "/{deploymentDesignNodeId}/deploy")
     public void deployDeploymentDesignNodeById(@PathVariable(value = "deploymentDesignNodeId") String deploymentDesignNodeId) {
         deploymentDesignDetailService.deployDeploymentDesignDetailByDeploymentDesignNode(deploymentDesignNodeService.getDeploymentDesignNodeById(deploymentDesignNodeId));
+    }
+
+    // 根据部署设计Id及设备Id进行扫描
+    @GetMapping(value = "/{deploymentDesignNodeId}/scan")
+    public ResultEntity scanDeploymentDesignDetailsById(@PathVariable(value = "deploymentDesignNodeId") String deploymentDesignNodeId, @RequestParam(value = "extensions", required = false, defaultValue = "") String... extensions) throws InterruptedException, ExecutionException, IOException {
+        return ResultUtils.build(deploymentDesignDetailService.scanDeploymentDesignDetailsByDeploymentDesignNode(deploymentDesignNodeService.getDeploymentDesignNodeById(deploymentDesignNodeId), extensions));
     }
 }
