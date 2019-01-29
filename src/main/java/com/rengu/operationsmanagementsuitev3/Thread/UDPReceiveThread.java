@@ -86,6 +86,9 @@ public class UDPReceiveThread {
             heartbeatEntity.setOSType(OSType);
             heartbeatEntity.setOSName(OSName);
             simpMessagingTemplate.convertAndSend("/deviceInfo/" + heartbeatEntity.getHostAddress(), JsonUtils.toJson(heartbeatEntity));
+            if (heartbeatEntity.getCpuUtilization() > 100 || heartbeatEntity.getCpuClock() > 6000) {
+                log.info(heartbeatEntity.toString());
+            }
             if (!DeviceService.ONLINE_HOST_ADRESS.containsKey(heartbeatEntity.getHostAddress())) {
                 log.info(heartbeatEntity.getHostAddress() + "----->建立服务器连接。");
             }
