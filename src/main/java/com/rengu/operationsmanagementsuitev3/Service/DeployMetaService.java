@@ -93,6 +93,7 @@ public class DeployMetaService {
         if (DEPLOYING_DEVICE.containsKey(deviceEntity.getHostAddress())) {
             simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, ApplicationMessages.DEVICE_IS_DEPOLOYING + deviceEntity.getHostAddress()));
             deployLogService.saveDeployLog(deployLogEntity, false, ApplicationMessages.DEVICE_IS_DEPOLOYING + deviceEntity.getHostAddress(), totalSendSize);
+            log.info(deviceEntity.getHostAddress() + "设备正在部署，程序退出");
             return;
         }
         DEPLOYING_DEVICE.put(deviceEntity.getHostAddress(), deviceEntity);
@@ -108,6 +109,7 @@ public class DeployMetaService {
                 if (!DeviceService.ONLINE_HOST_ADRESS.containsKey(deployMetaEntity.getDeviceEntity().getHostAddress())) {
                     simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, ApplicationMessages.DEVICE_IS_OFFLINE + deployMetaEntity.getDeviceEntity().getHostAddress()));
                     deployLogService.saveDeployLog(deployLogEntity, false, ApplicationMessages.DEVICE_IS_OFFLINE + deployMetaEntity.getDeviceEntity().getHostAddress(), totalSendSize);
+                    log.info(deviceEntity.getHostAddress() + "设备不在线，程序退出");
                     return;
                 }
                 // 1、发送文件开始标志
@@ -126,6 +128,7 @@ public class DeployMetaService {
                             String deployMessage = deviceEntity.getHostAddress() + ":" + deployMetaEntity.getTargetPath() + ",部署失败，接收路径回复超时。当前进度：" + sendProgress + "%";
                             simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署失败"));
                             deployLogService.saveDeployLog(deployLogEntity, false, deployMessage, totalSendSize);
+                            log.info(deployMessage + ",程序退出");
                             return;
                         }
                     }
@@ -160,6 +163,7 @@ public class DeployMetaService {
                         String deployMessage = deviceEntity.getHostAddress() + ":" + deployMetaEntity.getTargetPath() + ",部署失败，文件读取异常。当前进度：" + sendProgress + "%";
                         simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署失败"));
                         deployLogService.saveDeployLog(deployLogEntity, false, deployMessage, totalSendSize);
+                        log.info(deployMessage + ",程序退出");
                         return;
                     }
                 }
@@ -176,6 +180,7 @@ public class DeployMetaService {
                             String deployMessage = deviceEntity.getHostAddress() + ":" + deployMetaEntity.getTargetPath() + ",部署失败，接收文件结束标志回复超时。当前进度：" + sendProgress + "%";
                             simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署失败"));
                             deployLogService.saveDeployLog(deployLogEntity, false, deployMessage, totalSendSize);
+                            log.info(deployMessage + ",程序退出");
                             return;
                         }
                     }
@@ -194,6 +199,7 @@ public class DeployMetaService {
             deployLogService.saveDeployLog(deployLogEntity, false, "部署中断", totalSendSize);
         } finally {
             DEPLOYING_DEVICE.remove(deviceEntity.getHostAddress());
+            log.info("从正在部署的设备中移除：" + deviceEntity.getHostAddress());
         }
     }
 

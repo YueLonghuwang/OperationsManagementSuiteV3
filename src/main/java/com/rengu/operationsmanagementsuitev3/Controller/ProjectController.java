@@ -150,7 +150,7 @@ public class ProjectController {
     }
 
     @GetMapping(value = "/{projectId}/deploylogs")
-    public ResultEntity getDeployLogsByProject(@PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable, @PathVariable(value = "projectId") String projectId) {
+    public ResultEntity getDeployLogsByProject(@PageableDefault(sort = "startTime", direction = Sort.Direction.DESC) Pageable pageable, @PathVariable(value = "projectId") String projectId) {
         return ResultUtils.build(deployLogService.getDeployLogsByProject(pageable, projectService.getProjectById(projectId)));
     }
 
