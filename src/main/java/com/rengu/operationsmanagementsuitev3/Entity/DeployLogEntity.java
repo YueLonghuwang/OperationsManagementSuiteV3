@@ -26,6 +26,7 @@ public class DeployLogEntity implements Serializable {
     private Date startTime = new Date();
     private Date finishTime;
     private long totalFileSize;
+    private long totalSendSize;
     private double speed;
     private double progress;
     private boolean complete = true;

@@ -32,10 +32,11 @@ public class DeployLogService {
 
     public DeployLogEntity saveDeployLog(DeployLogEntity deployLogEntity, boolean complete, String message, long sendSize) {
         deployLogEntity.setFinishTime(new Date());
+        deployLogEntity.setTotalSendSize(sendSize);
         deployLogEntity.setComplete(complete);
         deployLogEntity.setMessage(message);
-        deployLogEntity.setSpeed((sendSize + 1 / 1024.0) / ((deployLogEntity.getFinishTime().getTime() - deployLogEntity.getStartTime().getTime()) + 1 / 1000));
-        deployLogEntity.setProgress(((double) sendSize / deployLogEntity.getTotalFileSize()) * 100);
+        deployLogEntity.setSpeed((deployLogEntity.getTotalSendSize() == 0 ? 1 : deployLogEntity.getTotalSendSize() / 1024.0) / ((deployLogEntity.getFinishTime().getTime() - deployLogEntity.getStartTime().getTime()) == 0 ? 1 : (double) (deployLogEntity.getFinishTime().getTime() - deployLogEntity.getStartTime().getTime()) / 1000));
+        deployLogEntity.setProgress(((double) deployLogEntity.getTotalSendSize() / deployLogEntity.getTotalFileSize()) * 100);
         return deployLogRepository.save(deployLogEntity);
     }
 

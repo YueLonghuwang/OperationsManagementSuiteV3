@@ -199,6 +199,7 @@ public class DeploymentDesignDetailService {
         orderEntity.setDeploymentDesignNodeEntity(deploymentDesignNodeEntity);
         orderEntity.setDeploymentDesignDetailEntity(deploymentDesignDetailEntity);
         orderEntity.setTargetPath(deviceEntity.getDeployPath() + deploymentDesignDetailEntity.getComponentHistoryEntity().getRelativePath());
+        orderEntity.setTargetDevice(deploymentDesignNodeEntity.getDeviceEntity());
         orderService.sendDeployDesignScanOrderByUDP(orderEntity);
         Future<DeploymentDesignScanResultEntity> scanResult = scanHandlerService.deploymentDesignDetailScanHandler(orderEntity);
         long scanStartTime = System.currentTimeMillis();
@@ -212,7 +213,7 @@ public class DeploymentDesignDetailService {
             if (scanResult.isDone()) {
                 DeploymentDesignScanResultEntity deploymentDesignScanResultEntity = scanResult.get();
                 ScanHandlerService.DEPLOY_DESIGN_SCAN_RESULT.remove(orderEntity.getId());
-                log.info("扫描Id：" + orderEntity.getId() + ",处理时间：" + ((System.currentTimeMillis() - scanStartTime) / 1000.0) + "扫描结束。");
+                log.info("扫描Id：" + orderEntity.getId() + ",处理时间：" + ((System.currentTimeMillis() - scanStartTime) / 1000.0) + "s,扫描结束。");
                 return deploymentDesignScanResultService.saveDeploymentDesignScanResult(deploymentDesignScanResultEntity);
             }
         }
