@@ -37,5 +37,5 @@ public class ApplicationConfig {
     // 部署回复超时时间
     public static final long REPLY_TIME_OUT = 1000 * 10;
     // 文件读取缓冲区大小
-    public static final int FILE_READ_BUFFER_SIZE = 1024;
+    public static final int FILE_READ_BUFFER_SIZE = 10240;
 }
