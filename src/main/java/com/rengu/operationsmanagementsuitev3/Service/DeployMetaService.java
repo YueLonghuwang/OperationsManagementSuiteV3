@@ -177,7 +177,7 @@ public class DeployMetaService {
                 int retryTime = 0;
                 while (true) {
                     try {
-                        byte[] buffer = new byte[100];
+                        byte[] buffer = new byte[20];
                         int readSize = inputStream.read(buffer);
                         ByteBuffer byteBuffer = ByteBuffer.allocate(readSize);
                         byteBuffer.put(buffer, 0, readSize).flip();

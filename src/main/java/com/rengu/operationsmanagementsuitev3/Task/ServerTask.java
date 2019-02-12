@@ -32,7 +32,7 @@ public class ServerTask {
     }
 
     // 检车设备在线状况
-    @Scheduled(fixedRate = 1000 * 3)
+    @Scheduled(fixedRate = 1000 * 5)
     public void onlineHostAdressCheck() {
         Iterator<Map.Entry<String, HeartbeatEntity>> entryIterator = DeviceService.ONLINE_HOST_ADRESS.entrySet().iterator();
         while (entryIterator.hasNext()) {

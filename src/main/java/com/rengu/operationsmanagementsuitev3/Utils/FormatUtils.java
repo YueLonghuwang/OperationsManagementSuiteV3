@@ -6,6 +6,8 @@ import org.apache.commons.io.FilenameUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * @program: OperationsManagementSuiteV3
@@ -40,6 +42,14 @@ public class FormatUtils {
         stringBuilder.append(string);
         stringBuilder.setLength(length);
         return stringBuilder.toString();
+    }
+
+    // 从字符串生成指定长度的字节数组
+    public static byte[] getBytesFormString(String string, int length) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(length);
+        byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        byteBuffer.put(string.getBytes());
+        return byteBuffer.array();
     }
 
 

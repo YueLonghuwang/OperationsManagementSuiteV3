@@ -36,11 +36,11 @@ public class DeployPackaegEntity {
     }
 
     public byte[] getCheckBuffer() {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(4 + 128 + 43);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(4 + 128 + 34);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
         byteBuffer.putInt(serialNum);
-        byteBuffer.put(FormatUtils.getString(targetPath, 128).getBytes());
-        byteBuffer.put(FormatUtils.getString(md5, 34).getBytes());
+        byteBuffer.put(FormatUtils.getBytesFormString(targetPath, 128));
+        byteBuffer.put(FormatUtils.getBytesFormString(md5, 34));
         return byteBuffer.array();
     }
 
