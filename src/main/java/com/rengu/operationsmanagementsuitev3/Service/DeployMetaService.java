@@ -107,6 +107,7 @@ public class DeployMetaService {
             @Cleanup OutputStream outputStream = socket.getOutputStream();
             deployLoop:
             for (DeployMetaEntity deployMetaEntity : deployMetaEntityList) {
+                // todo 新发送逻辑
                 // 检测设备是否在线
                 if (!DeviceService.ONLINE_HOST_ADRESS.containsKey(deployMetaEntity.getDeviceEntity().getHostAddress())) {
                     simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, ApplicationMessages.DEVICE_IS_OFFLINE + deployMetaEntity.getDeviceEntity().getHostAddress()));
@@ -114,9 +115,10 @@ public class DeployMetaService {
                     log.info(deviceEntity.getHostAddress() + "设备不在线，程序退出");
                     return;
                 }
-                // todo 新发送逻辑
+                // 读取发送文件
+                File file = new File(deployMetaEntity.getFileEntity().getLocalPath());
                 // 1、发送校验数据包
-                DeployPackaegEntity checkEntity = new DeployPackaegEntity(deployMetaEntity.getTargetPath(), deployMetaEntity.getFileEntity().getMD5());
+                DeployPackaegEntity checkEntity = new DeployPackaegEntity(file.length(), deployMetaEntity.getTargetPath(), deployMetaEntity.getFileEntity().getMD5());
                 outputStream.write(checkEntity.getCheckBuffer());
                 outputStream.flush();
                 // 2、接受回复判断是否继续发送
@@ -127,7 +129,11 @@ public class DeployMetaService {
                             log.info(deployMetaEntity.getTargetPath() + "不存在，发送文件内容。");
                             break;
                         } else {
+                            // 更新发送进度
+                            totalSendSize = totalSendSize + file.length();
+                            sendProgress = ((double) totalSendSize / deployLogEntity.getTotalFileSize()) * 100;
                             log.info(deployMetaEntity.getTargetPath() + "存在，跳过发送。");
+                            simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_SUCCEED, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署成功"));
                             continue deployLoop;
                         }
                     } catch (IOException exception) {
@@ -141,7 +147,6 @@ public class DeployMetaService {
                     }
                 }
                 // 3、读取并发送文件
-                File file = new File(deployMetaEntity.getFileEntity().getLocalPath());
                 @Cleanup RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r");
                 long fileSendSize = 0;
                 for (int i = 1; fileSendSize < file.length(); i++) {
@@ -177,32 +182,33 @@ public class DeployMetaService {
                 int retryTime = 0;
                 while (true) {
                     try {
-                        byte[] buffer = new byte[20];
+                        byte[] buffer = new byte[50];
                         int readSize = inputStream.read(buffer);
                         ByteBuffer byteBuffer = ByteBuffer.allocate(readSize);
                         byteBuffer.put(buffer, 0, readSize).flip();
-                        boolean finish = byteBuffer.getChar() == '\u0000';
-                        if (!finish) {
-                            finishCheckTime = System.currentTimeMillis();
-                            if (retryTime >= 3) {
-                                String deployMessage = deviceEntity.getHostAddress() + ":" + deployMetaEntity.getTargetPath() + ",部署失败，合并回复超时。当前进度：" + sendProgress + "%";
-                                simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署失败"));
-                                deployLogService.saveDeployLog(deployLogEntity, false, deployMessage, totalSendSize);
-                                log.info(deployMessage + ",程序退出");
-                                return;
+                        if (byteBuffer.remaining() >= 2) {
+                            boolean finish = byteBuffer.getChar() == '\u0000';
+                            if (!finish) {
+                                finishCheckTime = System.currentTimeMillis();
+                                if (retryTime >= 3) {
+                                    String deployMessage = deviceEntity.getHostAddress() + ":" + deployMetaEntity.getTargetPath() + ",部署失败，合并回复超时。当前进度：" + sendProgress + "%";
+                                    simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署失败"));
+                                    deployLogService.saveDeployLog(deployLogEntity, false, deployMessage, totalSendSize);
+                                    log.info(deployMessage + ",程序退出");
+                                    return;
+                                }
+                                while (byteBuffer.hasRemaining()) {
+                                    int serialNum = byteBuffer.getInt();
+                                    byte[] data = reReadFile(file, serialNum);
+                                    DeployPackaegEntity deployPackaegEntity = new DeployPackaegEntity(serialNum, file.length(), data);
+                                    outputStream.write(deployPackaegEntity.getDataBuffer());
+                                    outputStream.flush();
+                                }
+                                retryTime = retryTime + 1;
+                            } else {
+                                break;
                             }
-                            while (byteBuffer.hasRemaining()) {
-                                int serialNum = byteBuffer.getInt();
-                                byte[] data = reReadFile(file, serialNum);
-                                DeployPackaegEntity deployPackaegEntity = new DeployPackaegEntity(serialNum, file.length(), data);
-                                outputStream.write(deployPackaegEntity.getDataBuffer());
-                                outputStream.flush();
-                            }
-                            retryTime = retryTime + 1;
-                        } else {
-                            break;
                         }
-
                     } catch (IOException exception) {
                         if (System.currentTimeMillis() - finishCheckTime >= ApplicationConfig.REPLY_TIME_OUT) {
                             String deployMessage = deviceEntity.getHostAddress() + ":" + deployMetaEntity.getTargetPath() + ",部署失败，合并回复超时。当前进度：" + sendProgress + "%";
@@ -213,7 +219,9 @@ public class DeployMetaService {
                         }
                     }
                 }
+                simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_SUCCEED, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署成功"));
             }
+            simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOY_FINISHED, "部署结束"));
         } catch (IOException e) {
             e.printStackTrace();
             simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_ERROR, e.getMessage()));

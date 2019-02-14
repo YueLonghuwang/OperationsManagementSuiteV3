@@ -2,6 +2,7 @@ package com.rengu.operationsmanagementsuitev3.Utils;
 
 import com.rengu.operationsmanagementsuitev3.Entity.ComponentFileEntity;
 import com.rengu.operationsmanagementsuitev3.Entity.ComponentFileHistoryEntity;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.util.StringUtils;
 
@@ -14,6 +15,8 @@ import java.nio.ByteOrder;
  * @author: hanchangming
  * @create: 2018-08-24 13:08
  **/
+
+@Slf4j
 public class FormatUtils {
 
     /**
