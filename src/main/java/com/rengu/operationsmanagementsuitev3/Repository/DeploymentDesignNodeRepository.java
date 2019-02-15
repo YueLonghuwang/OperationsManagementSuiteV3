@@ -19,11 +19,11 @@ import java.util.List;
 @Repository
 public interface DeploymentDesignNodeRepository extends JpaRepository<DeploymentDesignNodeEntity, String> {
 
-    boolean existsByDeviceEntityAndDeploymentDesignEntity(DeviceEntity deviceEntity, DeploymentDesignEntity deploymentDesignEntity);
-
     Page<DeploymentDesignNodeEntity> findAllByDeploymentDesignEntity(Pageable pageable, DeploymentDesignEntity deploymentDesignEntity);
 
     List<DeploymentDesignNodeEntity> findAllByDeploymentDesignEntity(DeploymentDesignEntity deploymentDesignEntity);
 
     List<DeploymentDesignNodeEntity> findAllByDeviceEntity(DeviceEntity deviceEntity);
+
+    boolean existsByDeviceEntityAndDeploymentDesignEntity(DeviceEntity deviceEntity, DeploymentDesignEntity deploymentDesignEntity);
 }

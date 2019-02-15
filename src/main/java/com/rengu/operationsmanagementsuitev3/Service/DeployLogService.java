@@ -3,18 +3,14 @@ package com.rengu.operationsmanagementsuitev3.Service;
 import com.rengu.operationsmanagementsuitev3.Entity.DeployLogEntity;
 import com.rengu.operationsmanagementsuitev3.Entity.ProjectEntity;
 import com.rengu.operationsmanagementsuitev3.Repository.DeployLogRepository;
-import com.rengu.operationsmanagementsuitev3.Utils.ApplicationMessages;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
-import java.util.List;
+import java.util.Date;
 
 /**
  * @program: operations-management-suite-v3
@@ -28,60 +24,27 @@ import java.util.List;
 public class DeployLogService {
 
     private final DeployLogRepository deployLogRepository;
-    private final DeployLogDetailService deployLogDetailService;
 
     @Autowired
-    public DeployLogService(DeployLogRepository deployLogRepository, DeployLogDetailService deployLogDetailService) {
+    public DeployLogService(DeployLogRepository deployLogRepository) {
         this.deployLogRepository = deployLogRepository;
-        this.deployLogDetailService = deployLogDetailService;
     }
 
-    @CacheEvict(value = "DeployLog_Cache", allEntries = true)
-    public DeployLogEntity saveDeployLog(DeployLogEntity deployLogEntity) {
+    public DeployLogEntity saveDeployLog(DeployLogEntity deployLogEntity, boolean complete, String message, long sendSize) {
+        deployLogEntity.setFinishTime(new Date());
+        deployLogEntity.setTotalSendSize(sendSize);
+        deployLogEntity.setComplete(complete);
+        deployLogEntity.setMessage(message);
+        deployLogEntity.setSpeed((deployLogEntity.getTotalSendSize() == 0 ? 1 : deployLogEntity.getTotalSendSize() / 1024.0) / ((deployLogEntity.getFinishTime().getTime() - deployLogEntity.getStartTime().getTime()) == 0 ? 1 : (double) (deployLogEntity.getFinishTime().getTime() - deployLogEntity.getStartTime().getTime()) / 1000));
+        deployLogEntity.setProgress(((double) deployLogEntity.getTotalSendSize() / deployLogEntity.getTotalFileSize()) * 100);
         return deployLogRepository.save(deployLogEntity);
-    }
-
-    @CacheEvict(value = "DeployLog_Cache", allEntries = true)
-    public DeployLogEntity deleteDeployLogById(String deployLogId) {
-        DeployLogEntity deployLogEntity = getDeployLogById(deployLogId);
-        deployLogDetailService.deleteDeployLogDetailsByDeployLog(deployLogEntity);
-        deployLogRepository.delete(deployLogEntity);
-        return deployLogEntity;
-    }
-
-    @CacheEvict(value = "DeployLog_Cache", allEntries = true)
-    public List<DeployLogEntity> deleteDeployLogByProject(ProjectEntity projectEntity) {
-        List<DeployLogEntity> deployLogEntityList = getDeployLogsByProject(projectEntity);
-        for (DeployLogEntity deployLogEntity : deployLogEntityList) {
-            deleteDeployLogById(deployLogEntity.getId());
-        }
-        return deployLogEntityList;
-    }
-
-    public boolean hasDeployLogById(String deployLogId) {
-        if (StringUtils.isEmpty(deployLogId)) {
-            return false;
-        }
-        return deployLogRepository.existsById(deployLogId);
-    }
-
-    @Cacheable(value = "DeployLog_Cache", key = "#deployLogId")
-    public DeployLogEntity getDeployLogById(String deployLogId) {
-        if (!hasDeployLogById(deployLogId)) {
-            throw new RuntimeException(ApplicationMessages.DEPLOY_LOG_ID_NOT_FOUND + deployLogId);
-        }
-        return deployLogRepository.findById(deployLogId).get();
     }
 
     public Page<DeployLogEntity> getDeployLogsByProject(Pageable pageable, ProjectEntity projectEntity) {
         return deployLogRepository.findAllByProjectEntity(pageable, projectEntity);
     }
 
-    public List<DeployLogEntity> getDeployLogsByProject(ProjectEntity projectEntity) {
-        return deployLogRepository.findAllByProjectEntity(projectEntity);
-    }
-
-    public Page<DeployLogEntity> getDeployLogs(Pageable pageable) {
-        return deployLogRepository.findAll(pageable);
+    public void deleteDeployLogByProject(ProjectEntity projectEntity) {
+        deployLogRepository.deleteAllByProjectEntity(projectEntity);
     }
 }

@@ -23,8 +23,14 @@ public class DeployLogEntity implements Serializable {
     @Id
     private String id = UUID.randomUUID().toString();
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private Date createTime = new Date();
-    private boolean complete;
+    private Date startTime = new Date();
+    private Date finishTime;
+    private long totalFileSize;
+    private long totalSendSize;
+    private double speed;
+    private double progress;
+    private boolean complete = true;
+    private String message;
     @ManyToOne
     private ProjectEntity projectEntity;
 }

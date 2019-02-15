@@ -11,7 +11,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -40,8 +39,6 @@ public class ComponentHistoryService {
     }
 
     // 根据组件保存组件历史
-    @Async
-    @CacheEvict(value = "ComponentHistory_Cache", allEntries = true)
     public void saveComponentHistoryByComponent(ComponentEntity sourceComponent) {
         ComponentHistoryEntity componentHistoryEntity = new ComponentHistoryEntity();
         BeanUtils.copyProperties(sourceComponent, componentHistoryEntity, "id", "createTime");
@@ -52,7 +49,7 @@ public class ComponentHistoryService {
         log.info(sourceComponent.getName() + "-" + sourceComponent.getVersion() + "保存历史成功。");
     }
 
-    @CacheEvict(value = "ComponentHistory_Cache", allEntries = true)
+    @CacheEvict(value = "ComponentHistory_Cache", key = "#componentHistoryId")
     public ComponentHistoryEntity deleteComponentHistoryById(String componentHistoryId) throws IOException {
         ComponentHistoryEntity componentHistoryEntity = getComponentHistoryById(componentHistoryId);
         componentFileHistoryService.deleteComponentFileByComponentHistory(componentHistoryEntity);
@@ -94,11 +91,5 @@ public class ComponentHistoryService {
     // 根据组件查询组件历史
     public List<ComponentHistoryEntity> getComponentHistorysByComponent(ComponentEntity componentEntity) {
         return componentHistoryRepository.findAllByComponentEntity(componentEntity);
-    }
-
-    // 根据组件查询组件历史
-    @Cacheable(value = "ComponentHistory_Cache", key = "#methodName + #componentEntity.getId()")
-    public ComponentHistoryEntity getComponentHistoryByComponent(ComponentEntity componentEntity) {
-        return componentHistoryRepository.findFirstByComponentEntityOrderByTagDesc(componentEntity);
     }
 }

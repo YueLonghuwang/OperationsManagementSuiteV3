@@ -2,16 +2,21 @@ package com.rengu.operationsmanagementsuitev3.Utils;
 
 import com.rengu.operationsmanagementsuitev3.Entity.ComponentFileEntity;
 import com.rengu.operationsmanagementsuitev3.Entity.ComponentFileHistoryEntity;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * @program: OperationsManagementSuiteV3
  * @author: hanchangming
  * @create: 2018-08-24 13:08
  **/
+
+@Slf4j
 public class FormatUtils {
 
     /**
@@ -40,6 +45,14 @@ public class FormatUtils {
         stringBuilder.append(string);
         stringBuilder.setLength(length);
         return stringBuilder.toString();
+    }
+
+    // 从字符串生成指定长度的字节数组
+    public static byte[] getBytesFormString(String string, int length) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(length);
+        byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        byteBuffer.put(string.getBytes());
+        return byteBuffer.array();
     }
 
 

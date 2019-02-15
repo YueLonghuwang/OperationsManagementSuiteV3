@@ -20,6 +20,6 @@ public class DeployMetaEntity implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime = new Date();
     private DeviceEntity deviceEntity;
-    private ComponentHistoryEntity componentHistoryEntity;
-    private ComponentFileHistoryEntity componentFileHistoryEntity;
+    private String targetPath;
+    private FileEntity fileEntity;
 }

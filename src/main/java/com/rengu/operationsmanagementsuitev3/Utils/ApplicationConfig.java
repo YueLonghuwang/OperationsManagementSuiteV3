@@ -33,7 +33,11 @@ public class ApplicationConfig {
     public static final String FILES_SAVE_PATH = FormatUtils.formatPath(FileUtils.getUserDirectoryPath() + File.separator + "OMS" + File.separator + "FILES");
 
     // 扫描超时时间
-    public static final long SCAN_TIME_OUT = 1000 * 10;
+    public static final long SCAN_TIME_OUT = 1000 * 5;
     // 部署回复超时时间
-    public static final long REPLY_TIME_OUT = 1000 * 10;
+    public static final long REPLY_TIME_OUT = 1000 * 5;
+    // 设备在线心跳检测间隔
+    public static final long HEART_BEAT_CHECK_TIME = 1000 * 5;
+    // 文件读取缓冲区大小
+    public static final int FILE_READ_BUFFER_SIZE = 10240;
 }

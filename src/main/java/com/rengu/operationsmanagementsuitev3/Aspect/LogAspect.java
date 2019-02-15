@@ -53,7 +53,7 @@ public class LogAspect {
         logEntity.setUrl(httpServletRequest.getRequestURI());
         logEntity.setUserAgent(httpServletRequest.getHeader("User-Agent"));
         logEntity.setCallMethod(joinPoint.getSignature().getDeclaringTypeName() + "." + joinPoint.getSignature().getName());
-        log.info(logEntity.toString());
+//        log.info(logEntity.toString());
     }
 
     @AfterReturning(pointcut = "requestPonitCut()", returning = "result")

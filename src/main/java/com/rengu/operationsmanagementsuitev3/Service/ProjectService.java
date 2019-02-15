@@ -7,6 +7,7 @@ import com.rengu.operationsmanagementsuitev3.Utils.ApplicationMessages;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,7 +45,7 @@ public class ProjectService {
     }
 
     // 根据用户创建工程
-    @CacheEvict(value = "Project_Cache", allEntries = true)
+    @CachePut(value = "Project_Cache", key = "#projectEntity.id")
     public ProjectEntity saveProjectByUser(ProjectEntity projectEntity, UserEntity userEntity) {
         if (StringUtils.isEmpty(projectEntity.getName())) {
             throw new RuntimeException(ApplicationMessages.PROJECT_NAME_ARGS_NOT_FOUND);
@@ -57,7 +58,7 @@ public class ProjectService {
     }
 
     // 根据Id删除工程
-    @CacheEvict(value = "Project_Cache", allEntries = true)
+    @CacheEvict(value = "Project_Cache", key = "#projectId")
     public ProjectEntity deleteProjectById(String projectId) {
         ProjectEntity projectEntity = getProjectById(projectId);
         projectEntity.setDeleted(true);
@@ -65,7 +66,7 @@ public class ProjectService {
     }
 
     // 根据Id还原工程
-    @CacheEvict(value = "Project_Cache", allEntries = true)
+    @CachePut(value = "Project_Cache", key = "#projectId")
     public ProjectEntity restoreProjectById(String projectId) {
         ProjectEntity projectEntity = getProjectById(projectId);
         projectEntity.setName(getProjectName(projectEntity));
@@ -74,7 +75,7 @@ public class ProjectService {
     }
 
     // 根据Id彻底删除工程
-    @CacheEvict(value = "Project_Cache", allEntries = true)
+    @CacheEvict(value = "Project_Cache", key = "#projectId")
     public ProjectEntity cleanProjectById(String projectId) throws IOException {
         ProjectEntity projectEntity = getProjectById(projectId);
         deployLogService.deleteDeployLogByProject(projectEntity);
@@ -86,7 +87,7 @@ public class ProjectService {
     }
 
     // 根据Id修改工程
-    @CacheEvict(value = "Project_Cache", allEntries = true)
+    @CachePut(value = "Project_Cache", key = "#projectId")
     public ProjectEntity updateProjectById(String projectId, ProjectEntity projectArgs) {
         ProjectEntity projectEntity = getProjectById(projectId);
         if (!StringUtils.isEmpty(projectArgs.getName()) && !projectEntity.getName().equals(projectArgs.getName())) {
@@ -102,6 +103,7 @@ public class ProjectService {
     }
 
     // 添加或删除星标
+    @CachePut(value = "Project_Cache", key = "#projectId")
     public ProjectEntity starProjectById(String projectId, boolean hasStar) {
         ProjectEntity projectEntity = getProjectById(projectId);
         if (projectEntity.isHasStar() != hasStar) {

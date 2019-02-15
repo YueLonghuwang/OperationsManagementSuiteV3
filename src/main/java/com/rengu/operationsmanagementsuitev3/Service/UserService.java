@@ -8,6 +8,7 @@ import com.rengu.operationsmanagementsuitev3.Utils.ApplicationMessages;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -59,7 +60,7 @@ public class UserService implements UserDetailsService {
     }
 
     // 保存用户
-    @CacheEvict(value = "User_Cache", allEntries = true)
+    @CachePut(value = "User_Cache", key = "#userEntity.id")
     public UserEntity saveUser(UserEntity userEntity, RoleEntity... roleEntities) {
         if (userEntity == null) {
             throw new RuntimeException(ApplicationMessages.USER_ARGS_NOT_FOUND);
@@ -81,7 +82,7 @@ public class UserService implements UserDetailsService {
     }
 
     // 根据Id删除用户
-    @CacheEvict(value = "User_Cache", allEntries = true)
+    @CacheEvict(value = "User_Cache", key = "#userId")
     public UserEntity deleteUserById(String userId) {
         UserEntity userEntity = getUserById(userId);
         userRepository.delete(userEntity);
@@ -89,7 +90,7 @@ public class UserService implements UserDetailsService {
     }
 
     // 根据Id修改用户密码
-    @CacheEvict(value = "User_Cache", allEntries = true)
+    @CachePut(value = "User_Cache", key = "#userId")
     public UserEntity updateUserPasswordById(String userId, String password) {
         if (StringUtils.isEmpty(password)) {
             throw new RuntimeException(ApplicationMessages.USER_PASSWORD_ARGS_NOT_FOUND);
@@ -100,7 +101,7 @@ public class UserService implements UserDetailsService {
     }
 
     // 根据Id升级用户
-    @CacheEvict(value = "User_Cache", allEntries = true)
+    @CachePut(value = "User_Cache", key = "#userId")
     public UserEntity userUpgradeById(String userId) {
         UserEntity userEntity = getUserById(userId);
         if (hasAdminAuthorityByUser(userEntity)) {
@@ -111,7 +112,7 @@ public class UserService implements UserDetailsService {
     }
 
     // 根据Id降级用户
-    @CacheEvict(value = "User_Cache", allEntries = true)
+    @CachePut(value = "User_Cache", key = "#userId")
     public UserEntity userDegradeById(String userId) {
         UserEntity userEntity = getUserById(userId);
         if (!hasAdminAuthorityByUser(userEntity)) {
@@ -143,7 +144,6 @@ public class UserService implements UserDetailsService {
     }
 
     // 根据用户名查询用户
-    @Cacheable(value = "User_Cache", key = "#username")
     public UserEntity getUserByUsername(String username) {
         if (!hasUserByUsername(username)) {
             throw new UsernameNotFoundException(ApplicationMessages.USER_USERNAME_NOT_FOUND + username);

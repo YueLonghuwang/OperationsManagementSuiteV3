@@ -66,7 +66,6 @@ public class DeploymentDesignScanResultService {
         return deploymentDesignScanResultRepository.existsByOrderId(orderId);
     }
 
-    @Cacheable(value = "Deployment_Design_Scan_Result_Cache", key = "#deploymentDesignScanResultId")
     public DeploymentDesignScanResultEntity getDeploymentDesignScanResultsById(String deploymentDesignScanResultId) {
         if (!hasDeploymentDesignScanResultById(deploymentDesignScanResultId)) {
             throw new RuntimeException(ApplicationMessages.DEPLOYMENT_DESIGN_SCAN_RESULT_ID_NOT_FOUND + deploymentDesignScanResultId);
@@ -82,7 +81,6 @@ public class DeploymentDesignScanResultService {
         return deploymentDesignScanResultRepository.findAllByOrderId(orderId);
     }
 
-    @Cacheable(value = "Deployment_Design_Scan_Result_Cache", key = "#deploymentDesignDetailEntity.getId()")
     public List<DeploymentDesignScanResultEntity> getDeploymentDesignScanResultsByDeploymentDesignDetail(DeploymentDesignDetailEntity deploymentDesignDetailEntity) {
         return deploymentDesignScanResultRepository.findAllByDeploymentDesignDetailEntity(deploymentDesignDetailEntity);
     }

@@ -46,8 +46,8 @@ public class OrderService {
     public void sendDeployDesignScanOrderByUDP(OrderEntity orderEntity) throws IOException {
         String tag = FormatUtils.getString(orderEntity.getTag(), 4);
         String uuid = FormatUtils.getString(orderEntity.getId(), 37);
-        String deploymentDesignNodeId = FormatUtils.getString(orderEntity.getDeploymentDesignNodeId(), 37);
-        String deploymentDesignDetailId = FormatUtils.getString(orderEntity.getDeploymentDesignDetailId(), 37);
+        String deploymentDesignNodeId = FormatUtils.getString(orderEntity.getDeploymentDesignNodeEntity().getId(), 37);
+        String deploymentDesignDetailId = FormatUtils.getString(orderEntity.getDeploymentDesignDetailEntity().getId(), 37);
         String targetPath = FormatUtils.getString(orderEntity.getTargetPath(), 256);
         if (StringUtils.isEmpty(orderEntity.getExtension())) {
             sandMessageByUDP(orderEntity.getTargetDevice().getHostAddress(), tag + uuid + deploymentDesignNodeId + deploymentDesignDetailId + targetPath);
