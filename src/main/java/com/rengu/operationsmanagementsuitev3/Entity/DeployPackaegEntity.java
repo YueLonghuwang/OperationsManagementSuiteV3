@@ -24,6 +24,13 @@ public class DeployPackaegEntity {
     // 正文部分
     private byte[] data;
 
+    public DeployPackaegEntity() {
+        this.serialNum = -1;
+        this.totalSize = 0;
+        this.targetPath = "";
+        this.md5 = "";
+    }
+
     public DeployPackaegEntity(long totalSize, String targetPath, String md5) {
         this.serialNum = 0;
         this.totalSize = totalSize;
@@ -39,24 +46,29 @@ public class DeployPackaegEntity {
     }
 
     public byte[] getCheckBuffer() {
-//        log.info("发送校验包数据：序号：" + serialNum + ",总大小:" + totalSize + ",Path:" + targetPath + ",MD5:" + md5);
-        ByteBuffer byteBuffer = ByteBuffer.allocate(4 + 128 + 34 + 8);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(4 + 256 + 34 + 8);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
         byteBuffer.putInt(serialNum);
-        byteBuffer.put(FormatUtils.getBytesFormString(targetPath, 128));
+        byteBuffer.put(FormatUtils.getBytesFormString(targetPath, 256));
         byteBuffer.put(FormatUtils.getBytesFormString(md5, 34));
         byteBuffer.putLong(totalSize);
+//        log.info("发送校验包数据：序号：" + serialNum + ",总大小:" + totalSize + ",Path:" + targetPath + ",MD5:" + md5 + ",校验包总长度：" + byteBuffer.capacity());
         return byteBuffer.array();
     }
 
     public byte[] getDataBuffer() {
-//        log.info("发送数据包数据：序号：" + serialNum + ",包大小:" + dataSize + ",总大小:" + totalSize);
         ByteBuffer byteBuffer = ByteBuffer.allocate(4 + 4 + 8 + data.length);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
         byteBuffer.putInt(serialNum);
         byteBuffer.putInt(dataSize);
         byteBuffer.putLong(totalSize);
         byteBuffer.put(data);
+//        log.info("发送数据包数据：序号：" + serialNum + ",包大小:" + dataSize + ",总大小:" + totalSize + ",数据包总长度:" + byteBuffer.capacity());
         return byteBuffer.array();
+    }
+
+    public byte[] getFinishBuffer() {
+//        log.info("发送部署结束包数据");
+        return getCheckBuffer();
     }
 }

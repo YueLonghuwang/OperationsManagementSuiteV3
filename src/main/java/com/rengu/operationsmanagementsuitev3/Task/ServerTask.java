@@ -2,6 +2,7 @@ package com.rengu.operationsmanagementsuitev3.Task;
 
 import com.rengu.operationsmanagementsuitev3.Entity.HeartbeatEntity;
 import com.rengu.operationsmanagementsuitev3.Service.DeviceService;
+import com.rengu.operationsmanagementsuitev3.Utils.ApplicationConfig;
 import com.rengu.operationsmanagementsuitev3.Utils.IPUtils;
 import com.rengu.operationsmanagementsuitev3.Utils.ServerCastUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +33,7 @@ public class ServerTask {
     }
 
     // 检车设备在线状况
-    @Scheduled(fixedRate = 1000 * 5)
+    @Scheduled(fixedRate = ApplicationConfig.HEART_BEAT_CHECK_TIME)
     public void onlineHostAdressCheck() {
         Iterator<Map.Entry<String, HeartbeatEntity>> entryIterator = DeviceService.ONLINE_HOST_ADRESS.entrySet().iterator();
         while (entryIterator.hasNext()) {
