@@ -52,6 +52,7 @@ public class ApplicationInit implements ApplicationRunner {
         log.info("OMS服务器-IP地址：" + stringBuilder.toString());
         // 初始化文件保存路径
         File file = new File(ApplicationConfig.FILES_SAVE_PATH);
+        log.info("OMS服务器-组件实体文件缓存存放路径：" + new File(ApplicationConfig.CHUNKS_SAVE_PATH).getAbsolutePath());
         log.info("OMS服务器-组件实体文件存放路径：" + file.getAbsolutePath());
         if (!file.exists()) {
             FileUtils.forceMkdir(file);
