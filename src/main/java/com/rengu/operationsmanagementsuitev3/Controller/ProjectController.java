@@ -73,8 +73,8 @@ public class ProjectController {
     // 查询所有工程
     @GetMapping
     @PreAuthorize(value = "hasRole('admin')")
-    public ResultEntity getProjects(@PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResultUtils.build(projectService.getProjects(pageable));
+    public ResultEntity getProjects(@PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable, @RequestParam(value = "deleted") boolean deleted) {
+        return ResultUtils.build(projectService.getProjects(pageable, deleted));
     }
 
     // 添加设置星标状态

@@ -145,8 +145,8 @@ public class ProjectService {
     }
 
     // 查询所有工程
-    public Page<ProjectEntity> getProjects(Pageable pageable) {
-        return projectRepository.findAll(pageable);
+    public Page<ProjectEntity> getProjects(Pageable pageable, boolean deleted) {
+        return projectRepository.findByDeleted(pageable, deleted);
     }
 
     // 移交工程管理用户

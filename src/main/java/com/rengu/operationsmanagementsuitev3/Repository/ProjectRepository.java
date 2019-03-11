@@ -19,4 +19,6 @@ public interface ProjectRepository extends JpaRepository<ProjectEntity, String> 
     boolean existsByNameAndDeletedAndUserEntity(String name, boolean deleted, UserEntity userEntity);
 
     Page<ProjectEntity> findByDeletedAndUserEntity(Pageable pageable, boolean deleted, UserEntity userEntity);
+
+    Page<ProjectEntity> findByDeleted(Pageable pageable, boolean deleted);
 }
