@@ -40,4 +40,7 @@ public class ApplicationConfig {
     public static final long HEART_BEAT_CHECK_TIME = 1000 * 5;
     // 文件读取缓冲区大小
     public static final int FILE_READ_BUFFER_SIZE = 10240;
+
+    // NATS服务器地址
+    public static final String NATS_SERVER_IP = "127.0.0.1";
 }

@@ -3,6 +3,7 @@ package com.rengu.operationsmanagementsuitev3.Utils;
 import com.rengu.operationsmanagementsuitev3.Entity.RoleEntity;
 import com.rengu.operationsmanagementsuitev3.Entity.UserEntity;
 import com.rengu.operationsmanagementsuitev3.Service.RoleService;
+import com.rengu.operationsmanagementsuitev3.Service.SimEngineService;
 import com.rengu.operationsmanagementsuitev3.Service.UserService;
 import com.rengu.operationsmanagementsuitev3.Thread.TCPReceiveThread;
 import com.rengu.operationsmanagementsuitev3.Thread.UDPReceiveThread;
@@ -35,6 +36,9 @@ public class ApplicationInit implements ApplicationRunner {
     private final UDPReceiveThread udpReceiveThread;
 
     @Autowired
+    private SimEngineService simEngineService;
+
+    @Autowired
     public ApplicationInit(RoleService roleService, UserService userService, TCPReceiveThread tcpReceiveThread, UDPReceiveThread udpReceiveThread) {
         this.roleService = roleService;
         this.userService = userService;
@@ -56,6 +60,9 @@ public class ApplicationInit implements ApplicationRunner {
         if (!file.exists()) {
             FileUtils.forceMkdir(file);
         }
+        // 启动NATS消息监听
+        simEngineService.subscribeEntityMessage();
+        simEngineService.subscribeEventMessage();
         // 启动TCP消息接受线程
         tcpReceiveThread.TCPMessageReceiver();
         // 启动UDP消息接受线程

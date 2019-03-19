@@ -1,0 +1,93 @@
+syntax = "proto3";
+import "google/protobuf/any.proto";
+//�����������ͷ�װ��any��֧�ֻ����������ͣ�
+message DSEString
+{
+   string v = 1;
+}
+
+message DSEInt32
+{
+   int32 v = 1;
+}
+
+message DSEInt64
+{
+   int64 v = 1;
+}
+
+message DSEDouble
+{
+   double v = 1;
+}
+
+message DSEFloat
+{
+   float v = 1;
+}
+
+//�������������
+message DSERECCommand
+{
+   int32 cmdType = 1;
+   map<string , google.protobuf.Any> params = 2;
+}
+
+//ʵ�������
+message DSERECEntity
+{
+   string entityID = 20;
+   string name = 1;
+   string itemClass = 21;
+   int32 entityType = 2;
+   int32 equipmentType = 3;
+   int32 att = 4;
+
+   double LLAPosition_lon = 6;
+   double LLAPosition_lat = 7;
+   double LLAPosition_alt = 8;
+
+   double velocity_x = 9;
+   double velocity_y = 10;
+   double velocity_z = 11;
+
+   double pitch = 12;
+   double yaw = 13;
+   double roll = 14;
+   bool isLive = 15;
+
+   double healthPoint = 16;
+   string entityParam = 17;
+   int32 commanderID = 18;
+   string commander = 19;
+
+}
+
+//�¼�������
+message DSERECEvent
+{
+   int32 type = 1; //0 ״̬�ı� 1 �����¼� 2 ����ʼ���� 3 �����������
+   string srcEntityName = 2;
+   string srcEntityID = 3;
+   string dstEntityName = 4;
+   string dstEntityID = 5;
+   string eventName = 6;
+   string desc = 7;
+   repeated string params = 8;
+}
+
+//���ݼ�¼��
+message DSERECEntityRecord
+{
+   int64 simTime = 1; //�߼�ʱ�ӣ��ۼ�ֵ��
+   int64 realTime = 2; //����ʱ��
+   repeated DSERECEntity entityList = 3;
+}
+
+message DSERECEventRecord
+{
+   int64 simTime = 1;
+   int64 realTime = 2;
+   repeated DSERECEvent eventList = 3;
+}
+
