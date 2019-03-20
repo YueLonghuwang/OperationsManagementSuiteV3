@@ -1,6 +1,5 @@
 syntax = "proto3";
 import "google/protobuf/any.proto";
-//�����������ͷ�װ��any��֧�ֻ����������ͣ�
 message DSEString
 {
    string v = 1;
