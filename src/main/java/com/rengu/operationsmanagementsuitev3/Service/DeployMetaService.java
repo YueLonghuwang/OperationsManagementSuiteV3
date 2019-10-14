@@ -131,7 +131,6 @@ public class DeployMetaService {
                             // 更新发送进度
                             totalSendSize = totalSendSize + file.length();
                             sendProgress = ((double) totalSendSize / deployLogEntity.getTotalFileSize()) * 100;
-//                            log.info("发送速度：" + sendSpeed + ",发送进度：" + sendProgress + ",总发送大小：" + totalSendSize + ",总大小：" + deployLogEntity.getTotalFileSize());
                             simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING_SUCCEED, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署成功"));
                             continue deployLoop;
                         }
@@ -168,7 +167,6 @@ public class DeployMetaService {
                         double sendSize = readSize / 1024.0;
                         sendSpeed = sendSize / sendTime;
                         sendProgress = ((double) totalSendSize / deployLogEntity.getTotalFileSize()) * 100;
-//                        log.info("发送速度：" + sendSpeed + ",发送进度：" + sendProgress + ",总发送大小：" + totalSendSize + ",总大小：" + deployLogEntity.getTotalFileSize());
                         if (file.length() > FileUtils.ONE_MB * 10 && fileSendSize % (ApplicationConfig.FILE_READ_BUFFER_SIZE * 10) == 0) {
                             simpMessagingTemplate.convertAndSend("/deployProgress/" + deploymentDesignEntity.getId(), new DeployProgressEntity(deviceEntity.getHostAddress(), sendSpeed, sendProgress, DEPLOYING, FilenameUtils.getName(deployMetaEntity.getTargetPath()) + "-部署中"));
                         }
