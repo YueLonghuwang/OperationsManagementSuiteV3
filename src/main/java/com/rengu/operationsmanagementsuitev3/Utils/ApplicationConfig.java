@@ -35,7 +35,7 @@ public class ApplicationConfig {
     // 扫描超时时间
     public static final long SCAN_TIME_OUT = 1000 * 5;
     // 部署回复超时时间
-    public static final long REPLY_TIME_OUT = 1000 * 5;
+    public static final long REPLY_TIME_OUT = 1000 * 8;
     // 设备在线心跳检测间隔
     public static final long HEART_BEAT_CHECK_TIME = 1000 * 5;
     // 文件读取缓冲区大小

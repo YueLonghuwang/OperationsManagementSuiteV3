@@ -13,9 +13,7 @@ import org.apache.commons.io.IOUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -60,7 +58,7 @@ public class TCPReceiveThread {
         }
     }
 
-    private void bytesHandler(byte[] bytes) {
+    private void bytesHandler(byte[] bytes) throws UnsupportedEncodingException {
         int pointer = 0;
         String messageType = new String(bytes, 0, 4).trim();
         pointer = pointer + 4;
@@ -116,17 +114,18 @@ public class TCPReceiveThread {
         }
         // 组件设备扫描信息
         if (messageType.equals(OrderService.DEPLOY_DESIGN_SCAN_RESULT_TAG)) {
-            String id = new String(bytes, pointer, 36).trim();
+            String charsetstr="GBK";
+            String id = new String(bytes, pointer, 36,charsetstr).trim();
             pointer = pointer + 36;
-            String deploymentDesignNodeId = new String(bytes, pointer, 36).trim();
+            String deploymentDesignNodeId = new String(bytes, pointer, 36,charsetstr).trim();
             pointer = pointer + 36;
-            String deploymentDesignDetailId = new String(bytes, pointer, 36).trim();
+            String deploymentDesignDetailId = new String(bytes, pointer, 36,charsetstr).trim();
             pointer = pointer + 36;
             List<DeploymentDesignScanResultDetailEntity> deploymentDesignScanResultDetailEntityList = new ArrayList<>();
             while (pointer + 256 + 34 <= bytes.length) {
-                String targetPath = new String(bytes, pointer, 256).trim();
+                String targetPath = new String(bytes, pointer, 256,charsetstr).trim();
                 pointer = pointer + 256;
-                String md5 = new String(bytes, pointer, 34).trim();
+                String md5 = new String(bytes, pointer, 34,charsetstr).trim();
                 pointer = pointer + 34;
                 DeploymentDesignScanResultDetailEntity deploymentDesignScanResultDetailEntity = new DeploymentDesignScanResultDetailEntity();
                 deploymentDesignScanResultDetailEntity.setName(FilenameUtils.getName(targetPath));

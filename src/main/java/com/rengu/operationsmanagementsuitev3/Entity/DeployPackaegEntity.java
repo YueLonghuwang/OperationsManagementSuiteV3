@@ -4,6 +4,7 @@ import com.rengu.operationsmanagementsuitev3.Utils.FormatUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -45,7 +46,7 @@ public class DeployPackaegEntity {
         this.data = data;
     }
 
-    public byte[] getCheckBuffer() {
+    public byte[] getCheckBuffer() throws UnsupportedEncodingException {
         ByteBuffer byteBuffer = ByteBuffer.allocate(4 + 256 + 34 + 8);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
         byteBuffer.putInt(serialNum);
@@ -67,7 +68,7 @@ public class DeployPackaegEntity {
         return byteBuffer.array();
     }
 
-    public byte[] getFinishBuffer() {
+    public byte[] getFinishBuffer() throws UnsupportedEncodingException {
 //        log.info("发送部署结束包数据");
         return getCheckBuffer();
     }

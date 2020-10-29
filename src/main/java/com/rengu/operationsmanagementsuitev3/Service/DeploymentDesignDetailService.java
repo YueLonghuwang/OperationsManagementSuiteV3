@@ -201,7 +201,9 @@ public class DeploymentDesignDetailService {
         orderEntity.setTargetPath(deviceEntity.getDeployPath() + deploymentDesignDetailEntity.getComponentHistoryEntity().getRelativePath());
         orderEntity.setTargetDevice(deploymentDesignNodeEntity.getDeviceEntity());
         orderService.sendDeployDesignScanOrderByUDP(orderEntity);
+
         Future<DeploymentDesignScanResultEntity> scanResult = scanHandlerService.deploymentDesignDetailScanHandler(orderEntity);
+
         long scanStartTime = System.currentTimeMillis();
         while (true) {
             if (System.currentTimeMillis() - scanStartTime >= ApplicationConfig.SCAN_TIME_OUT * 6) {

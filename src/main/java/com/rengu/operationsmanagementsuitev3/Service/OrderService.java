@@ -49,10 +49,14 @@ public class OrderService {
         String deploymentDesignNodeId = FormatUtils.getString(orderEntity.getDeploymentDesignNodeEntity().getId(), 37);
         String deploymentDesignDetailId = FormatUtils.getString(orderEntity.getDeploymentDesignDetailEntity().getId(), 37);
         String targetPath = FormatUtils.getString(orderEntity.getTargetPath(), 256);
+        System.out.println("targetPath:"+targetPath);
         if (StringUtils.isEmpty(orderEntity.getExtension())) {
+            System.out.println("orderEntity.getTargetDevice().getHostAddress():"+orderEntity.getTargetDevice().getHostAddress());
+            System.out.println("tag + uuid + deploymentDesignNodeId + deploymentDesignDetailId + targetPath:...."+tag + uuid + deploymentDesignNodeId + deploymentDesignDetailId + targetPath);
             sandMessageByUDP(orderEntity.getTargetDevice().getHostAddress(), tag + uuid + deploymentDesignNodeId + deploymentDesignDetailId + targetPath);
         } else {
             String extension = FormatUtils.getString(orderEntity.getExtension(), 128);
+
             sandMessageByUDP(orderEntity.getTargetDevice().getHostAddress(), tag + uuid + deploymentDesignNodeId + deploymentDesignDetailId + extension + targetPath);
         }
     }

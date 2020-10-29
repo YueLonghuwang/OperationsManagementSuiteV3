@@ -7,6 +7,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -48,10 +49,10 @@ public class FormatUtils {
     }
 
     // 从字符串生成指定长度的字节数组
-    public static byte[] getBytesFormString(String string, int length) {
+    public static byte[] getBytesFormString(String string, int length) throws UnsupportedEncodingException {
         ByteBuffer byteBuffer = ByteBuffer.allocate(length);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        byteBuffer.put(string.getBytes());
+        byteBuffer.put(string.getBytes("UTF-8"));//YUE YONG CHANG UP
         return byteBuffer.array();
     }
 
